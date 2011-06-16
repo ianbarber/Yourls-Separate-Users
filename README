@@ -1,0 +1,1 @@
+A simple Yourls plugin to add a username to each created URL, and to filter the admin interface. Requires a filter which is currently not in trunk. 
