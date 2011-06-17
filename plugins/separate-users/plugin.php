@@ -3,7 +3,7 @@
 Plugin Name: Separate Users
 Plugin URI: http://virgingroupdigital.wordpress.com
 Description: Allow some filtering of URLs based on the user that created them
-Version: 0.2
+Version: 0.3
 Author: Ian Barber <ian.barber@gmail.com>
 Author URI: http://phpir.com/
 */
@@ -49,16 +49,11 @@ function separate_users_activated($args) {
  * @return array
  */
 function separate_users_api_url_stats( $return, $shorturl ) {
-        global $ydb; 
-        
         $keyword = str_replace( YOURLS_SITE . '/' , '', $shorturl ); // accept either 'http://ozh.in/abc' or 'abc'
 	$keyword = yourls_sanitize_string( $keyword );
         $keyword = addslashes($keyword);
-        $user = addslashes(YOURLS_USER);
-        $table = YOURLS_DB_TABLE_URL;
         
-        $result = $ydb->query("SELECT 1 FROM `$table` WHERE  `user` = '" . $user . "' AND `keyword` = '" . $keyword . "'");
-        if($result > 0) {
+        if(separate_users_is_valid($keyword)) {
                 return $return;
         } else {
                 return array('simple' => "URL is owned by another user", 'message' => 'URL is owned by another user', 'errorCode' => 403);
@@ -73,22 +68,13 @@ function separate_users_api_url_stats( $return, $shorturl ) {
  * @return bool is_valid
  */
 function separate_users_is_valid_user($is_valid) {
-        global $keyword, $ydb; 
+        global $keyword; 
         
         if(!$is_valid || !defined("YOURLS_INFOS")) {
                 return $is_valid;
         }
-        
-        $user = addslashes(YOURLS_USER);
-        $table = YOURLS_DB_TABLE_URL;
-        
-        if($user == SEPARATE_USERS_ADMIN_USER) {
-                return true;
-        }
-        
-        $result = $ydb->query("SELECT 1 FROM `$table` WHERE  `user` = '" . $user . "' AND `keyword` = '" . $keyword . "'");
 
-        return $result > 0 ? true : "Sorry, that URL was created by another user."; 
+        return separate_users_is_valid($keyword) ? true : "Sorry, that URL was created by another user."; 
 }
 
 /**
@@ -119,4 +105,23 @@ function separate_users_admin_list_where($where) {
                 return $where; // Allow admin user to see the lot. 
         }
         return $where . " AND (`user` = '$user' OR `user` IS NULL) ";
+}
+
+/**
+ * Internal module function for testing user access to a keyword
+ *
+ * @param string $user 
+ * @param string $keyword 
+ * @return boolean
+ */
+function separate_users_is_valid( $keyword ) {
+        global $ydb; 
+        
+        $user = addslashes(YOURLS_USER);
+        if($user == SEPARATE_USERS_ADMIN_USER) {
+                return true;
+        }
+        $table = YOURLS_DB_TABLE_URL;
+        $result = $ydb->query("SELECT 1 FROM `$table` WHERE  (`user` IS NULL OR `user` = '" . $user . "') AND `keyword` = '" . $keyword . "'");
+        return $result > 0;
 }
