@@ -15,7 +15,7 @@ if(!defined('SEPARATE_USERS_ADMIN_USER')) {
 
 yourls_add_action( 'insert_link', 'separate_users_insert_link' );
 yourls_add_action( 'activated_separate-users/plugin.php', 'separate_users_activated' );
-yourls_add_action( 'admin_list_where', 'separate_users_admin_list_where' );
+yourls_add_filter( 'admin_list_where', 'separate_users_admin_list_where' );
 yourls_add_filter( 'is_valid_user', 'separate_users_is_valid_user' );
 yourls_add_filter( 'api_url_stats', 'separate_users_api_url_stats' );
 
