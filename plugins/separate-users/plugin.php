@@ -8,6 +8,33 @@ Author: Ian Barber <ian.barber@gmail.com>
 Author URI: http://phpir.com/
 */
 
+// Check if serialization is used
+function is_serialized($data) {
+	// if it isn't a string, it isn't serialized
+	if(!is_string($data))
+		return false;
+		$data = trim($data);
+	if('N;' == $data)
+		return true;
+	if(!preg_match( '/^([adObis]):/', $data, $badions))
+		return false;
+		switch($badions[1]) {
+		case 'a' :
+		case 'O' :
+		case 's' :
+	if(preg_match( "/^{$badions[1]}:[0-9]+:.*[;}]\$/s", $data))
+		return true;
+		break;
+		case 'b' :
+		case 'i' :
+		case 'd' :
+	if(preg_match( "/^{$badions[1]}:[0-9.E-]+;\$/", $data))
+		return true;
+		break;
+	}
+	return false;
+}
+
 // Define the username given full view of the stats 
 if(!defined('SEPARATE_USERS_ADMIN_USER')) {
 	define('SEPARATE_USERS_ADMIN_USER', serialize(array("admin")));
@@ -100,10 +127,17 @@ function separate_users_insert_link($actions) {
  */
 function separate_users_admin_list_where($where) {
         $user = addslashes(YOURLS_USER); 
-        $SEPARATE_USERS_ADMIN_USER = unserialize(SEPARATE_USERS_ADMIN_USER);
-        if(in_array($user, $SEPARATE_USERS_ADMIN_USER)) {
-                return $where; // Allow admin user to see the lot. 
-        }
+		if(!is_serialized(SEPARATE_USERS_ADMIN_USER)) { 
+			if($user == SEPARATE_USERS_ADMIN_USER) {
+				return $where; // Allow admin user to see the lot. 
+			}
+		} else { 
+			$SEPARATE_USERS_ADMIN_USER = unserialize(SEPARATE_USERS_ADMIN_USER);
+				if(in_array($user, $SEPARATE_USERS_ADMIN_USER)) {
+					return $where; // Allow admin user to see the lot. 
+				}
+		}
+
         return $where . " AND (`user` = '$user' OR `user` IS NULL) ";
 }
 
@@ -118,10 +152,17 @@ function separate_users_is_valid( $keyword ) {
         global $ydb; 
         
         $user = addslashes(YOURLS_USER);
-        $SEPARATE_USERS_ADMIN_USER = unserialize(SEPARATE_USERS_ADMIN_USER);
-        if(in_array($user, $SEPARATE_USERS_ADMIN_USER)) {
-                return true;
-        }
+		if(!is_serialized(SEPARATE_USERS_ADMIN_USER)) { 
+			if($user == SEPARATE_USERS_ADMIN_USER) {
+				return true;
+			}
+		} else { 
+			$SEPARATE_USERS_ADMIN_USER = unserialize(SEPARATE_USERS_ADMIN_USER);
+			if(in_array($user, $SEPARATE_USERS_ADMIN_USER)) {
+				return true;
+			}
+		}        
+       
         $table = YOURLS_DB_TABLE_URL;
         $result = $ydb->query("SELECT 1 FROM `$table` WHERE  (`user` IS NULL OR `user` = '" . $user . "') AND `keyword` = '" . $keyword . "'");
         return $result > 0;
