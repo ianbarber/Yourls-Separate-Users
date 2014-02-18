@@ -4,14 +4,14 @@ To install, just copy the plugins/separate-users folder to your plugins folder (
 
 If an account named 'admin' is created, it will be able to view all links. The specific name can be changed by defining SEPARATE_USERS_ADMIN_USER in the config, e.g. 
 
-define ('SEPARATE_USERS_ADMIN_USER', 'tony');
+    define ('SEPARATE_USERS_ADMIN_USER', 'tony');
 
 to give the account 'tony' full access.
 
 
 If you want to define multiple users, here are the steps to follow.
 
-define('SEPARATE_USERS_ADMIN_USER', serialize(array('tony', 'jack')));
+    define('SEPARATE_USERS_ADMIN_USER', serialize(array('tony', 'jack')));
 
 to give the accounts 'tony' and 'jack' full access.
 
