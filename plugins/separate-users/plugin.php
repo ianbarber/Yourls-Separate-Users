@@ -3,7 +3,7 @@
 Plugin Name: Separate Users
 Plugin URI: https://github.com/ianbarber/Yourls-Separate-Users
 Description: Allow some filtering of URLs based on the user that created them
-Version: 0.4.1
+Version: 0.4.2
 Author: Ian Barber <ian.barber@gmail.com>
 Author URI: http://phpir.com/
 */
@@ -40,6 +40,9 @@ if(!defined('SEPARATE_USERS_ADMIN_USER')) {
 	define('SEPARATE_USERS_ADMIN_USER', serialize(array("admin")));
 }
 
+if(!defined('SEPARATE_USERS_ALLOWED_PLUGIN_PAGES')) {
+	define('SEPARATE_USERS_ALLOWED_PLUGIN_PAGES', serialize(array(null)));
+}
 yourls_add_action( 'insert_link', 'separate_users_insert_link' );
 yourls_add_action( 'activated_separate-users/plugin.php', 'separate_users_activated' );
 yourls_add_action( 'auth_successful', 'seperate_users_intercept_admin' );
