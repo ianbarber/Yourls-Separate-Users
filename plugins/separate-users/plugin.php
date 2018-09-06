@@ -3,7 +3,7 @@
 Plugin Name: Separate Users
 Plugin URI: https://github.com/ianbarber/Yourls-Separate-Users
 Description: Allow some filtering of URLs based on the user that created them
-Version: 0.4.0
+Version: 0.4.1
 Author: Ian Barber <ian.barber@gmail.com>
 Author URI: http://phpir.com/
 */
@@ -251,18 +251,26 @@ function seperate_users_intercept_admin() {
 				$admin = true;
 		}
 
-		// restrict access to non-admins
+		// restrict access to plugin mgmt non-admins
 		if( !$admin ) {
-			// intercept requests for plugin management page
+			// intercept requests for global plugin management page
 			if( isset( $_SERVER['REQUEST_URI'] ) && $_SERVER['REQUEST_URI'] == '/admin/plugins.php' ||
 				// intercept requests for plugin management 
 				isset( $_REQUEST['plugin'] ) ) {
 				yourls_redirect( yourls_admin_url( '?access=denied' ), 302 );
 			}
-		}
+			// intercept requests for individual plugin management pages
+			if ( isset( $_REQUEST['page'] ) ) {
+				$action_keyword = $_REQUEST['page'];
+				$allowed = unserialize(SEPARATE_USERS_ALLOWED_PLUGIN_PAGES);
+				if(!in_array($link, $allowed) ) {
+					yourls_redirect( yourls_admin_url( '?access=denied' ), 302 );
+				}
+			}
+		}	
 	}
 }
-
+// remove disallowed plugins from link list
 function separate_users_admin_sublinks( $links ) {
 	$user = YOURLS_USER; 
 	// admin check
@@ -276,7 +284,7 @@ function separate_users_admin_sublinks( $links ) {
 			$admin = true;
 	}
 
-	// restrict access to non-admins
+	// restrict access to non-admins - removes from link list
 	if( !$admin ) {
 
 		$allowed = unserialize(SEPARATE_USERS_ALLOWED_PLUGIN_PAGES);
