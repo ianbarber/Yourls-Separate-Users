@@ -266,7 +266,7 @@ function seperate_users_intercept_admin() {
 			if ( isset( $_REQUEST['page'] ) ) {
 				$action_keyword = $_REQUEST['page'];
 				$allowed = unserialize(SEPARATE_USERS_ALLOWED_PLUGIN_PAGES);
-				if(!in_array($link, $allowed) ) {
+				if(!in_array($action_keyword, $allowed) ) {
 					yourls_redirect( yourls_admin_url( '?access=denied' ), 302 );
 				}
 			}
