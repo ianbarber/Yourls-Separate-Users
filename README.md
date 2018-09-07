@@ -3,6 +3,10 @@ YOURLS-Seperate-Users
 
 A simple YouRLS plug to hide different users information from each other. 
 
+Notice
+------
+This plugin will work well on it's own, but has been merged with and is depreicated by [Auth Manager Plus](https://github.com/joshp23/YOURLS-AuthMgrPlus), which provides Role Based Access Control. The decision was to merge these plugins rather than to simply integrate them for the sake of simplicity and to avoid redundancy.
+
 Features
 --------
 -  Links created by an authenticated user will only be visible in the admin area to that user (also `+` stats pages)

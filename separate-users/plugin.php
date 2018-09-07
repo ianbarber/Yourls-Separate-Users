@@ -3,11 +3,13 @@
 Plugin Name: Separate Users
 Plugin URI: https://github.com/ianbarber/Yourls-Separate-Users
 Description: Allow some filtering of URLs based on the user that created them
-Version: 1.0.0
+Version: 1.1.0
 Author: Ian Barber <ian.barber@gmail.com>
 Author URI: http://phpir.com/
 */
-
+if((yourls_is_active_plugin('authmp/plugin.php')) !== false) {
+	die('Seperate Users is depricated to Auth Manager Plus.');
+}
 /**
  * Set the environment variables
  *
@@ -80,7 +82,7 @@ yourls_add_filter( 'api_url_stats', 'separate_users_api_url_stats' );
 function separate_users_api_url_stats( $return, $shorturl ) {
 	$keyword = str_replace( YOURLS_SITE . '/' , '', $shorturl ); // accept either 'http://ozh.in/abc' or 'abc'
 	$keyword = yourls_sanitize_string( $keyword );
-	$keyword = addslashes($keyword);
+	$keyword = $keyword;
 
 	if(separate_users_is_valid($keyword)) {
 		return $return;
@@ -96,14 +98,15 @@ function separate_users_api_url_stats( $return, $shorturl ) {
  * @param bool $is_valid 
  * @return bool is_valid
  */
-yourls_add_filter( 'is_valid_user', 'separate_users_is_valid_user' );
-function separate_users_is_valid_user($is_valid) {
-	global $keyword; 
-
-	if(!$is_valid || !defined("YOURLS_INFOS")) {
-		return $is_valid;
+yourls_add_action( 'pre_yourls_infos', 'separate_users_pre_yourls_infos' );
+function separate_users_pre_yourls_infos( $keyword ) {
+	if( !separate_users_is_valid($keyword) ) {
+		$authenticated = yourls_is_valid_user();
+		if ( $authenticated === true ) 
+				yourls_redirect( yourls_admin_url( '?access=denied' ), 302 );
+			else
+				yourls_redirect( YOURLS_SITE, 302 );
 	}
-	return separate_users_is_valid($keyword) ? true : "Sorry, that URL was created by another user."; 
 }
 
 /**
