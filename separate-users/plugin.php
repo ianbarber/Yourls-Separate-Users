@@ -217,7 +217,7 @@ function seperate_users_intercept_admin() {
 			// intercept requests for individual plugin management pages
 			if ( isset( $_REQUEST['page'] ) ) {
 				$action_keyword = $_REQUEST['page'];
-				if(!in_array($action_keyword, $$env['pages']) ) {
+				if(!in_array($action_keyword, $env['pages']) ) {
 					yourls_redirect( yourls_admin_url( '?access=denied' ), 302 );
 				}
 			}
