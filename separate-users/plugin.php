@@ -3,66 +3,49 @@
 Plugin Name: Separate Users
 Plugin URI: https://github.com/ianbarber/Yourls-Separate-Users
 Description: Allow some filtering of URLs based on the user that created them
-Version: 0.4.2
+Version: 1.0.0
 Author: Ian Barber <ian.barber@gmail.com>
 Author URI: http://phpir.com/
 */
 
-// Check if serialization is used
-function is_serialized($data) {
-	// if it isn't a string, it isn't serialized
-	if(!is_string($data))
-		return false;
-		$data = trim($data);
-	if('N;' == $data)
-		return true;
-	if(!preg_match( '/^([adObis]):/', $data, $badions))
-		return false;
-		switch($badions[1]) {
-		case 'a' :
-		case 'O' :
-		case 's' :
-	if(preg_match( "/^{$badions[1]}:[0-9]+:.*[;}]\$/s", $data))
-		return true;
-		break;
-		case 'b' :
-		case 'i' :
-		case 'd' :
-	if(preg_match( "/^{$badions[1]}:[0-9.E-]+;\$/", $data))
-		return true;
-		break;
+/**
+ * Set the environment variables
+ *
+ * @return array 
+ */
+function seperate_users_env() {
+
+	global $seperate_users_admin_user;
+	global $seperate_users_allowed_plugin_pages;
+
+	// have these been set in config.php?
+	if ( !isset( $seperate_users_admin_user) ) {
+		$seperate_users_admin_user = array('admin');
 	}
-	return false;
-}
 
-// Define the username given full view of the stats 
-if(!defined('SEPARATE_USERS_ADMIN_USER')) {
-	define('SEPARATE_USERS_ADMIN_USER', serialize(array("admin")));
-}
+	if ( !isset( $seperate_users_allowed_plugin_pages) ) {
+		$seperate_users_allowed_plugin_pages = array();
+	}
 
-if(!defined('SEPARATE_USERS_ALLOWED_PLUGIN_PAGES')) {
-	define('SEPARATE_USERS_ALLOWED_PLUGIN_PAGES', serialize(array(null)));
+	// for other plugins to hook into for inclusion. Hint: array_merge()
+	yourls_apply_filter( 'seperate_users_allowed_plugin_pages', $seperate_users_allowed_plugin_pages );
+
+	return array('admins' => $seperate_users_admin_user, 'pages' => $seperate_users_allowed_plugin_pages);
 }
-yourls_add_action( 'insert_link', 'separate_users_insert_link' );
-yourls_add_action( 'activated_separate-users/plugin.php', 'separate_users_activated' );
-yourls_add_action( 'auth_successful', 'seperate_users_intercept_admin' );
-yourls_add_filter( 'admin_list_where', 'separate_users_admin_list_where' );
-yourls_add_filter( 'is_valid_user', 'separate_users_is_valid_user' );
-yourls_add_filter( 'api_url_stats', 'separate_users_api_url_stats' );
-yourls_add_filter( 'get_db_stats', 'separate_users_get_db_stats' );
-yourls_add_filter( 'admin_sublinks', 'separate_users_admin_sublinks' );
 
 /**
  * Activate the plugin, and add the user column to the table if not added
  *
  * @param array $args 
  */
+yourls_add_action( 'activated_separate-users/plugin.php', 'separate_users_activated' );
 function separate_users_activated($args) {
 	global $ydb; 
         
 	$table = YOURLS_DB_TABLE_URL;
+	$version = version_compare(YOURLS_VERSION, '1.7.3') >= 0;
 
-	if (version_compare(YOURLS_VERSION, '1.7.3') >= 0) {
+	if ($version) {
 		$sql = "DESCRIBE `$table`";
 		$results = $ydb->fetchObjects($sql);
 	} else {
@@ -76,14 +59,10 @@ function separate_users_activated($args) {
 		}
 	}
 	if(!$activated) {
-
-		if (version_compare(YOURLS_VERSION, '1.7.3') >= 0) {
-			$binds = null;
+		if ($version) {
 			$sql = "ALTER TABLE `$table` ADD `user` VARCHAR(255) NULL)";
-			$insert = $ydb->fetchAffected($sql,$binds);
-
+			$insert = $ydb->fetchAffected($sql);
 		} else {
-
 			$ydb->query("ALTER TABLE `$table` ADD `user` VARCHAR(255) NULL");
 
 		}
@@ -97,6 +76,7 @@ function separate_users_activated($args) {
  * @param string $shorturl 
  * @return array
  */
+yourls_add_filter( 'api_url_stats', 'separate_users_api_url_stats' );
 function separate_users_api_url_stats( $return, $shorturl ) {
 	$keyword = str_replace( YOURLS_SITE . '/' , '', $shorturl ); // accept either 'http://ozh.in/abc' or 'abc'
 	$keyword = yourls_sanitize_string( $keyword );
@@ -116,13 +96,13 @@ function separate_users_api_url_stats( $return, $shorturl ) {
  * @param bool $is_valid 
  * @return bool is_valid
  */
+yourls_add_filter( 'is_valid_user', 'separate_users_is_valid_user' );
 function separate_users_is_valid_user($is_valid) {
 	global $keyword; 
 
 	if(!$is_valid || !defined("YOURLS_INFOS")) {
 		return $is_valid;
 	}
-
 	return separate_users_is_valid($keyword) ? true : "Sorry, that URL was created by another user."; 
 }
 
@@ -131,6 +111,7 @@ function separate_users_is_valid_user($is_valid) {
  *
  * @param array $actions 
  */
+yourls_add_action( 'insert_link', 'separate_users_insert_link' );
 function separate_users_insert_link($actions) {
 	global $ydb; 
 
@@ -155,17 +136,13 @@ function separate_users_insert_link($actions) {
  * @param string $where 
  * @return string
  */
+yourls_add_filter( 'admin_list_where', 'separate_users_admin_list_where' );
 function separate_users_admin_list_where($where) {
 	$user = YOURLS_USER; 
-	if(!is_serialized(SEPARATE_USERS_ADMIN_USER)) { 
-		if($user == SEPARATE_USERS_ADMIN_USER) {
-			return $where; // Allow admin user to see the lot. 
-		}
-	} else { 
-		$SEPARATE_USERS_ADMIN_USER = unserialize(SEPARATE_USERS_ADMIN_USER);
-		if(in_array($user, $SEPARATE_USERS_ADMIN_USER)) {
-			return $where; // Allow admin user to see the lot. 
-		}
+	$env = seperate_users_env();
+
+	if(in_array($user, $env['admins'])) {
+		return $where; // Allow admin user to see the lot. 
 	}
 
 	if (version_compare(YOURLS_VERSION, '1.7.3') >= 0) {
@@ -185,20 +162,14 @@ function separate_users_admin_list_where($where) {
  * @param array $where
  * @return array 
  */
+yourls_add_filter( 'get_db_stats', 'separate_users_get_db_stats' );
 function separate_users_get_db_stats( $return, $where ) {
 
-	$user = YOURLS_USER; 
+	$user = YOURLS_USER;
+	$env = seperate_users_env();
 
-	// admin check
-	if(!is_serialized(SEPARATE_USERS_ADMIN_USER)) { 
-		if($user == SEPARATE_USERS_ADMIN_USER) {
-			return $return; // Allow admin user to see the lot. 
-		}
-	} else { 
-		$SEPARATE_USERS_ADMIN_USER = unserialize(SEPARATE_USERS_ADMIN_USER);
-		if(in_array($user, $SEPARATE_USERS_ADMIN_USER)) {
-			return $return; // Allow admin user to see the lot. 
-		}
+	if(in_array($user, $env['admins'])) {
+		return $return; // Allow admin user to see the lot. 
 	}
 
 	// filter results
@@ -206,21 +177,15 @@ function separate_users_get_db_stats( $return, $where ) {
 	$table_url = YOURLS_DB_TABLE_URL;
 
 	if (version_compare(YOURLS_VERSION, '1.7.3') >= 0) {
-
 		$where['sql'] = $where['sql'] . " AND (`user` = :user OR `user` IS NULL) ";
 		$where['binds']['user'] = $user;
-
 		$sql = "SELECT COUNT(keyword) as count, SUM(clicks) as sum FROM `$table_url` WHERE 1=1 " . $where['sql'];
 		$binds = $where['binds'];
-
 		$totals = $ydb->fetchObject($sql, $binds);
-
 	} else {
-
 		$where = $where . " AND (`user` = $user OR `user` IS NULL) ";
 		$totals = $ydb->get_results("SELECT COUNT(keyword) as count, SUM(clicks) as sum FROM `$table_url` WHERE 1=1 " . $where );
 	}
-
 	$return = array( 'total_links' => $totals->count, 'total_clicks' => $totals->sum );
 
 	return $return;
@@ -229,31 +194,18 @@ function separate_users_get_db_stats( $return, $where ) {
 
 /**
  * Restricting Access to Plugin Administration(s) for non-admins
- *
- *  
- *
- *
  */
+yourls_add_action( 'auth_successful', 'seperate_users_intercept_admin' );
 function seperate_users_intercept_admin() {
 	// we use this GET param to send up a feedback notice to user
     if ( isset( $_GET['access'] ) && $_GET['access']=='denied' ) {
     	yourls_add_notice('Access Denied');
     }
-
 	// only worry about this with HTML draw
 	if(!yourls_is_API()) {
 		$user = YOURLS_USER; 
-		// admin check
-		$admin = false;
-		if(!is_serialized(SEPARATE_USERS_ADMIN_USER)) { 
-			if($user == SEPARATE_USERS_ADMIN_USER)
-				$admin = true;
-		} else { 
-			$SEPARATE_USERS_ADMIN_USER = unserialize(SEPARATE_USERS_ADMIN_USER);
-			if(in_array($user, $SEPARATE_USERS_ADMIN_USER))
-				$admin = true;
-		}
-
+		$env = seperate_users_env();
+		$admin = in_array($user, $env['admins']) ? true : false;
 		// restrict access to plugin mgmt non-admins
 		if( !$admin ) {
 			// intercept requests for global plugin management page
@@ -265,38 +217,27 @@ function seperate_users_intercept_admin() {
 			// intercept requests for individual plugin management pages
 			if ( isset( $_REQUEST['page'] ) ) {
 				$action_keyword = $_REQUEST['page'];
-				$allowed = unserialize(SEPARATE_USERS_ALLOWED_PLUGIN_PAGES);
-				if(!in_array($action_keyword, $allowed) ) {
+				if(!in_array($action_keyword, $$env['pages']) ) {
 					yourls_redirect( yourls_admin_url( '?access=denied' ), 302 );
 				}
 			}
 		}	
 	}
 }
+
 // remove disallowed plugins from link list
+yourls_add_filter( 'admin_sublinks', 'separate_users_admin_sublinks' );
 function separate_users_admin_sublinks( $links ) {
 	$user = YOURLS_USER; 
-	// admin check
-	$admin = false;
-	if(!is_serialized(SEPARATE_USERS_ADMIN_USER)) { 
-		if($user == SEPARATE_USERS_ADMIN_USER)
-			$admin = true;
-	} else { 
-		$SEPARATE_USERS_ADMIN_USER = unserialize(SEPARATE_USERS_ADMIN_USER);
-		if(in_array($user, $SEPARATE_USERS_ADMIN_USER))
-			$admin = true;
-	}
-
+	$env = seperate_users_env();
+	$admin = in_array($user, $env['admins']) ? true : false;
 	// restrict access to non-admins - removes from link list
 	if( !$admin ) {
-
-		$allowed = unserialize(SEPARATE_USERS_ALLOWED_PLUGIN_PAGES);
 		foreach( $links['plugins'] as $link => $ar ) {
-			if(!in_array($link, $allowed) )
+			if(!in_array($link, $env['pages']) )
 				unset($links['plugins'][$link]);
 		}
 	}
-
 	sort($links['plugins']);
 	return $links;
 }
@@ -309,17 +250,12 @@ function separate_users_admin_sublinks( $links ) {
  */
 function separate_users_is_valid( $keyword ) {
 	global $ydb; 
-    
-    $user = addslashes(YOURLS_USER);
-	if(!is_serialized(SEPARATE_USERS_ADMIN_USER)) { 
-		if($user == SEPARATE_USERS_ADMIN_USER) {
-			return true;
-		}
-	} else { 
-		$SEPARATE_USERS_ADMIN_USER = unserialize(SEPARATE_USERS_ADMIN_USER);
-		if(in_array($user, $SEPARATE_USERS_ADMIN_USER)) {
-			return true;
-		}
+
+	$user = YOURLS_USER;
+	$env = seperate_users_env();
+
+	if(in_array($user, $env['admins'])) {
+		return true;
 	}
 
 	$table = YOURLS_DB_TABLE_URL;
@@ -333,3 +269,4 @@ function separate_users_is_valid( $keyword ) {
 
 	return $result > 0;
 }
+
