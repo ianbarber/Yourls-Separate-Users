@@ -41,7 +41,7 @@ function seperate_users_env() {
 yourls_add_action( 'activated_separate-users/plugin.php', 'separate_users_activated' );
 function separate_users_activated($args) {
 	global $ydb; 
-        
+    
 	$table = YOURLS_DB_TABLE_URL;
 	$version = version_compare(YOURLS_VERSION, '1.7.3') >= 0;
 
@@ -81,7 +81,7 @@ function separate_users_api_url_stats( $return, $shorturl ) {
 	$keyword = str_replace( YOURLS_SITE . '/' , '', $shorturl ); // accept either 'http://ozh.in/abc' or 'abc'
 	$keyword = yourls_sanitize_string( $keyword );
 	$keyword = addslashes($keyword);
-        
+
 	if(separate_users_is_valid($keyword)) {
 		return $return;
 	} else {
@@ -198,9 +198,9 @@ function separate_users_get_db_stats( $return, $where ) {
 yourls_add_action( 'auth_successful', 'seperate_users_intercept_admin' );
 function seperate_users_intercept_admin() {
 	// we use this GET param to send up a feedback notice to user
-    if ( isset( $_GET['access'] ) && $_GET['access']=='denied' ) {
-    	yourls_add_notice('Access Denied');
-    }
+	if ( isset( $_GET['access'] ) && $_GET['access']=='denied' ) {
+		yourls_add_notice('Access Denied');
+	}
 	// only worry about this with HTML draw
 	if(!yourls_is_API()) {
 		$user = YOURLS_USER; 
@@ -265,7 +265,7 @@ function separate_users_is_valid( $keyword ) {
 		$sql = "SELECT 1 FROM `$table` WHERE  (`user` IS NULL OR `user` = :user) AND `keyword` = :keyword";
 		$result = $ydb->fetchAffected($sql, $binds);
 	} else
-    	$result = $ydb->query("SELECT 1 FROM `$table` WHERE  (`user` IS NULL OR `user` = $user) AND `keyword` = $keyword");
+		$result = $ydb->query("SELECT 1 FROM `$table` WHERE  (`user` IS NULL OR `user` = $user) AND `keyword` = $keyword");
 
 	return $result > 0;
 }
