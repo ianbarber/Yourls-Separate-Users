@@ -7,7 +7,7 @@ Version: 1.1.0
 Author: Ian Barber <ian.barber@gmail.com>
 Author URI: http://phpir.com/
 */
-if((yourls_is_active_plugin('authmp/plugin.php')) !== false) {
+if((yourls_is_active_plugin('authMgrPlus/plugin.php')) !== false) {
 	die('Seperate Users is depricated to Auth Manager Plus.');
 }
 /**
